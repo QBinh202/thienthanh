@@ -1,615 +1,318 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thiên Thanh Cute</title>
-    <!-- Kết nối font Montserrat từ Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;600&display=swap" rel="stylesheet">
-    <!-- Kết nối CSS chính -->
-    <link href="css/main.css" rel="stylesheet">
-    <style>
-        /* Reset và thiết lập cơ bản */
-        html, body {
-            height: 100%;
-            padding: 0;
-            margin: 0;
-            background: #000;
-            overflow: hidden;
-            position: relative;
-            font-family: 'Montserrat', sans-serif;
-            perspective: 1000px; /* Thêm perspective cho hiệu ứng 3D */
-        }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vòng quay may mắn</title>
+<style>
+:root{
+  --size: 600px;
+  --radius: calc(var(--size)/2);
+  --center-size: 180px;
+  --img-size: 80px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:system-ui,Roboto,Arial;
+  display:grid;place-items:center;
+  min-height:100vh;
+  background:#f6f7fb;
+  color:#0f172a;
+}
+h1{text-align:center;font-weight:800;margin-bottom:6px}
+p{text-align:center;opacity:.7;margin-bottom:20px}
 
-        /* Canvas cho hiệu ứng universe */
-        .container2 {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
+.stage{position:relative;width:var(--size);height:var(--size);margin:auto;}
+.wheel{
+  position:absolute;inset:0;border-radius:50%;
+  transform:rotate(var(--rot,0deg));
+  box-shadow:0 10px 30px rgba(0,0,0,.15);
+  overflow:hidden;
+}
 
-        .content {
-            width: 100%;
-            height: 100%;
-        }
+.pointer{
+  position:absolute;
+  top:-25px;left:50%;transform:translateX(-50%);
+  width:0;height:0;
+  border-left:14px solid transparent;border-right:14px solid transparent;
+  border-top:30px solid #ef4444;z-index:10;
+  filter:drop-shadow(0 3px 6px rgba(0,0,0,.3));
+}
+.center{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;}
+.start-btn{
+  pointer-events:auto;cursor:pointer;
+  width:var(--center-size);height:var(--center-size);border-radius:50%;
+  font-weight:700;font-size:24px;text-align:center;line-height:1.1;
+  background:radial-gradient(circle at 30% 30%,#fff,#f1f5f9);
+  border:6px solid #fff;box-shadow:0 10px 20px rgba(0,0,0,.2);
+  transition:transform .2s ease,opacity .2s ease;
+}
+.start-btn:hover{transform:scale(1.05)}
+.start-btn:active{transform:scale(.97)}
+.start-btn.disabled{opacity:.5;pointer-events:none}
 
-        canvas#universe {
-            width: 100%;
-            height: 100%;
-        }
+.controls{width:min(900px,92vw);margin:20px auto 8px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#fileInput{flex:1}
+.filelist{
+  margin-top:12px;background:#fff;border-radius:12px;
+  box-shadow:0 6px 20px rgba(0,0,0,.08);padding:10px 12px;
+  max-height:210px;overflow:auto
+}
+.filelist .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-weight:700}
+.filelist .items{display:grid;grid-template-columns:repeat(auto-fill, minmax(180px,1fr));gap:10px}
+.fileitem{
+  display:flex;gap:10px;align-items:center;padding:8px;border-radius:10px;
+  background:#f8fafc;border:1px solid #e2e8f0;
+}
+.fileitem img{width:40px;height:40px;object-fit:cover;border-radius:8px;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.fileitem .name{font-size:12px;font-weight:700;line-height:1.2;word-break:break-word;flex:1}
+.fileitem .delbtn{
+  background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:4px 8px;cursor:pointer;font-size:12px
+}
+.fileitem .delbtn:hover{background:#fecaca}
 
-        /* Trái tim SVG và hiệu ứng pulsing */
-        .heart-animation {
-            position: absolute;
-            width: 500px; /* Kích thước trái tim */
-            height: 500px;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-            animation: heartPulse 2s infinite;
-        }
+.overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.6);
+  backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:100;
+}
+.overlay.show{display:flex;}
+.winner-box{
+  background:#fff;padding:20px 30px;border-radius:12px;
+  box-shadow:0 20px 40px rgba(0,0,0,.3);animation:pop .4s ease
+}
+.winner-box img{max-width:320px;max-height:320px;object-fit:cover;border-radius:10px}
+@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
 
-        .heart-animation svg {
-            width: 100%;
-            height: 100%;
-            fill: url(#gradient);
-            stroke: red;
-            stroke-width: 3px; /* Độ dày viền trái tim */
-        }
-
-        @keyframes heartPulse {
-            0%, 100% {
-                transform: translate(-50%, -50%) scale(1);
-                filter: drop-shadow(0 0 20px red);
-            }
-            50% {
-                transform: translate(-50%, -50%) scale(1.2);
-                filter: drop-shadow(0 0 40px red);
-            }
-        }
-
-        /* Các hình ảnh quay quanh trái tim */
-        .orbit {
-            position: absolute;
-            width: 600px; /* Kích thước quỹ đạo */
-            height: 600px;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(0deg);
-            z-index: 15;
-            animation: orbit3D 10s linear infinite;
-        }
-
-        @keyframes orbit3D {
-            0% {
-                transform: translate(-50%, -50%) rotate(0deg);
-            }
-            100% {
-                transform: translate(-50%, -50%) rotate(360deg);
-            }
-        }
-
-        .orbit img {
-            position: absolute;
-            width: 80px; /* Kích thước hình ảnh */
-            height: 80px;
-            animation: float 3s ease-in-out infinite;
-            border-radius: 50%;
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.7); /* Độ rõ nét */
-            object-fit: cover; /* Đảm bảo hình ảnh không bị méo */
-        }
-
-        @keyframes float {
-            0%, 100% {
-                transform: translateY(0);
-            }
-            50% {
-                transform: translateY(-15px); /* Hiệu ứng nổi */
-            }
-        }
-
-        /* Vị trí các hình ảnh trên quỹ đạo trái tim */
-        .orbit img:nth-child(1) {
-            top: 0;
-            left: 50%;
-            transform: translate(-50%, -100%) rotate(0deg);
-        }
-
-        .orbit img:nth-child(2) {
-            top: 20%;
-            left: 80%;
-            transform: translate(-50%, -50%) rotate(72deg);
-        }
-
-        .orbit img:nth-child(3) {
-            top: 50%;
-            left: 100%;
-            transform: translate(-50%, -50%) rotate(144deg);
-        }
-
-        .orbit img:nth-child(4) {
-            top: 80%;
-            left: 80%;
-            transform: translate(-50%, -50%) rotate(216deg);
-        }
-
-        .orbit img:nth-child(5) {
-            top: 100%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(288deg);
-        }
-
-        /* Hiệu ứng mưa trái tim */
-        .heart-rain {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            overflow: hidden;
-            z-index: 5;
-        }
-
-        .heart-rain .heart {
-            position: absolute;
-            top: -50px;
-            width: 30px;
-            height: 30px;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 22"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="%23ff0000"/></svg>') no-repeat center center / contain;
-            opacity: 0.8;
-            animation: fall linear infinite;
-        }
-
-        @keyframes fall {
-            to {
-                transform: translateY(100vh) rotate(360deg);
-                opacity: 0;
-            }
-        }
-
-        /* Chữ trung tâm với hiệu ứng 3D và không có nền */
-        .center-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotateX(0deg) rotateY(0deg);
-            /* Loại bỏ background-color */
-            /* background-color: rgba(0, 0, 0, 0.5); */
-            color: rgb(0, 229, 255);
-            font-size: 31px;
-            font-style: italic;
-            display: flex;
-            flex-direction: column; /* Để đặt hình ảnh dưới chữ */
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            /* Loại bỏ padding và border-radius */
-            /* padding: 20px; */
-            /* border-radius: 10px; */
-            z-index: 20;
-            animation: text3DMove 5s infinite linear;
-            transform-style: preserve-3d;
-            /* Thêm text-shadow để cải thiện độ rõ */
-            text-shadow: 0 0 10px rgba(225, 12, 168, 0.8);
-        }
-
-        /* Keyframes cho hiệu ứng 3D di chuyển */
-        @keyframes text3DMove {
-            0% {
-                transform: translate(-50%, -50%) rotateX(0deg) rotateY(0deg);
-            }
-            25% {
-                transform: translate(-50%, -50%) rotateX(10deg) rotateY(10deg);
-            }
-            50% {
-                transform: translate(-50%, -50%) rotateX(0deg) rotateY(20deg);
-            }
-            75% {
-                transform: translate(-50%, -50%) rotateX(-10deg) rotateY(10deg);
-            }
-            100% {
-                transform: translate(-50%, -50%) rotateX(0deg) rotateY(0deg);
-            }
-        }
-
-        /* Các kiểu chữ trong .title */
-        .title h1, .title h3 {
-            color: #ea80b0; /* Màu sắc phù hợp với trái tim */
-            text-shadow: 0 0 10px pink;
-            margin: 10px 0;
-        }
-
-        /* Canvas cho hiệu ứng particle */
-        canvas#pinkboard {
-            z-index: 2; /* Đặt phía trên universe canvas */
-        }
-
-        /* Canvas cho hiệu ứng universe */
-        canvas#universe {
-            z-index: 1;
-        }
-
-        /* Các lớp bổ sung từ code 2 */
-        .title {
-            position: absolute;
-            top: 10%;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 20;
-            text-align: center;
-            color: #ea80b0;
-        }
-
-        .title .img {
-            width: 150px;
-            height: auto;
-            margin-top: 20px;
-        }
-
-        /* Hiệu ứng trái tim hồng tản ra đã được loại bỏ */
-
-        /* Thêm hiệu ứng phóng to thu nhỏ cho hình ảnh tt.png */
-        @keyframes imagePulse {
-            0%, 100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.1);
-            }
-        }
-
-        .center-image {
-            width: 120px; /* Tăng kích thước ảnh */
-            height: 120px;
-            margin-top: 20px; /* Khoảng cách giữa text và image */
-            border-radius: 50%;
-            box-shadow: 0 0 20px rgba(225, 12, 168, 0.8);
-            animation: imagePulse 3s infinite ease-in-out;
-            image-rendering: crisp-edges; /* Cố gắng làm nét hình ảnh */
-        }
-    </style>
+.toast{
+  position:fixed;bottom:14px;left:50%;transform:translateX(-50%);
+  background:#111827;color:#fff;padding:8px 14px;border-radius:10px;font-weight:600;display:none;z-index:150
+}
+.toast.show{display:block}
+</style>
 </head>
 <body>
-    <!-- Canvas cho hiệu ứng universe -->
-    <div class="container2">
-        <div class="content">
-            <canvas id="universe"></canvas>
-        </div>
+<main>
+  <h1>Vòng quay tư thế</h1>
+  <p>Thiên Thanh là người tuyệt vời nhất trong lòng anh, thương em bạn nhỏ của anh</p>
+
+  <div class="stage">
+    <div class="pointer"></div>
+    <div id="wheel" class="wheel"></div>
+    <div class="center"><button id="startBtn" class="start-btn">BẮT<br>ĐẦU</button></div>
+  </div>
+
+  <section class="controls">
+    <div class="row">
+      <input id="fileInput" type="file" multiple accept="image/*">
+      <label>Thời gian quay (giây): <input id="spinTime" type="number" min="1" max="20" step="0.5" value="6" style="width:80px"></label>
     </div>
 
-    <!-- Trái tim SVG với hiệu ứng pulsing -->
-    <div class="heart-animation">
-        <svg viewBox="0 0 24 22" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:#ff0707;stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:#ff0000;stop-opacity:1" />
-                </linearGradient>
-            </defs>
-            <!-- Hình trái tim với đường cong mềm mại hơn -->
-            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 
-            2 5.42 4.42 3 7.5 3c1.74 0 3.41 0.81 4.5 
-            2.09C13.09 3.81 14.76 3 16.5 3 
-            19.58 3 22 5.42 22 8.5c0 3.78-3.4 
-            6.86-8.55 11.54L12 21.35z"/>
-        </svg>
+    <div class="filelist" id="fileList" hidden>
+      <div class="header">
+        <span>Danh sách ảnh</span>
+        <span id="count"></span>
+      </div>
+      <div class="items" id="fileItems"></div>
     </div>
-    
-    <!-- Chữ trung tâm với hiệu ứng 3D và không có nền -->
-    <div class="center-text">
-        Thiên Thanh Cute
-        <img src="tt.png" alt="Thiên Thanh" class="center-image">
-    </div>
+  </section>
+</main>
 
-    <!-- Các hình ảnh quay quanh trái tim -->
-    <div class="orbit">
-        <img src="1.jpg" alt="Image 1" style="animation-delay: 0s;">
-        <img src="2.jpg" alt="Image 2" style="animation-delay: 1s;">
-        <img src="3.jpg" alt="Image 3" style="animation-delay: 2s;">
-        <img src="4.jpg" alt="Image 4" style="animation-delay: 3s;">
-        <img src="5.jpg" alt="Image 5" style="animation-delay: 4s;">
-    </div>
+<div id="overlay" class="overlay">
+  <div class="winner-box"><img id="winnerImg" src="" alt="winner"></div>
+</div>
+<div id="toast" class="toast">Hết ảnh — hãy chọn thêm ảnh mới.</div>
 
-    <!-- Hiệu ứng mưa trái tim -->
-    <div class="heart-rain" id="heartRain">
-        <!-- Các trái tim sẽ được tạo động bằng JavaScript -->
-    </div>
+<script>
+// =================== CẤU HÌNH ===================
+let SPIN_TIME = 6;     // thời gian quay (giây)
+const BASE_TURNS = 5;  // vòng quay cơ bản trước khi dừng
+// =================================================
 
-    <!-- Canvas cho hiệu ứng particle -->
-    <canvas id="pinkboard"></canvas>
+const wheel = document.getElementById('wheel');
+const startBtn = document.getElementById('startBtn');
+const fileInput = document.getElementById('fileInput');
+const spinTimeInput = document.getElementById('spinTime');
+const overlay = document.getElementById('overlay');
+const winnerImg = document.getElementById('winnerImg');
+const toast = document.getElementById('toast');
 
-    <!-- Tiêu đề và Hình ảnh -->
-    <div class="title">
-        <h3 class="STARDUST1">2024</h3>
-        <h1 class="STARDUST2">Thiên Thanh Dễ Thương Số Một</h1>
-        <h3 class="STARDUST3">Miss <strong>❤</strong> You</h3>
-        <!-- Đã loại bỏ hình ảnh tt.png ở đây -->
-        <!-- <img class="img" src="tt.png" alt="Thiên Thanh" /> -->
-    </div>
+const fileList = document.getElementById('fileList');
+const fileItems = document.getElementById('fileItems');
+const countEl = document.getElementById('count');
 
-    <!-- Audio tự động phát -->
-    <audio id="backgroundAudio" autoplay loop>
-        <source src="anhdalamgidau.mp3" type="audio/mp3" />
-        <!-- Thêm định dạng khác nếu cần -->
-        Your browser does not support the audio element.
-    </audio>
+let pool = [];        // danh sách ảnh đang chơi [{id, src, name}]
+let spinning = false;
+let sliceAngle = 0;
+let rotation = 0;
+let lastWinnerId = null;
 
-    <!-- Kết nối các script JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-    <script src="js/main.js"></script>
-    <script src="js/particle.js"></script>
-    <script src="js/universe.js"></script>
-    <script>
-        // Tự động phát âm thanh (cho các trình duyệt không hỗ trợ autoplay)
-        window.onload = () => {
-            const audio = document.getElementById('backgroundAudio');
+const pastel=['#fde68a','#bfdbfe','#fbcfe8','#a7f3d0','#fcd34d','#c7d2fe','#f9a8d4','#99f6e4','#fef08a','#ddd6fe'];
 
-            // Kiểm tra nếu trình duyệt hỗ trợ autoplay
-            audio.play().then(() => {
-                // Autoplay thành công
-                console.log('Audio autoplayed successfully.');
-            }).catch(error => {
-                // Autoplay bị chặn, thông báo lỗi
-                console.log('Autoplay was prevented.');
-            });
+function uid(){ return Math.random().toString(36).slice(2,10); }
 
-            // Tạo hiệu ứng mưa trái tim rơi
-            const heartRain = document.getElementById('heartRain');
-            const totalHearts = 30; // Số lượng trái tim mưa
+function rebuildFileUI(){
+  fileItems.innerHTML = '';
+  if(pool.length===0){
+    fileList.hidden = true;
+    countEl.textContent = '';
+    startBtn.classList.add('disabled');
+    return;
+  }
+  fileList.hidden = false;
+  startBtn.classList.remove('disabled');
+  countEl.textContent = `${pool.length} ảnh`;
+  for(const it of pool){
+    const card = document.createElement('div');
+    card.className = 'fileitem';
+    card.dataset.id = it.id;
 
-            for (let i = 0; i < totalHearts; i++) {
-                const heart = document.createElement('div');
-                heart.classList.add('heart');
-                heart.style.left = Math.random() * 100 + 'vw';
-                heart.style.animationDuration = 5 + Math.random() * 5 + 's';
-                heart.style.animationDelay = Math.random() * 10 + 's';
-                heartRain.appendChild(heart);
-            }
+    const im = document.createElement('img');
+    im.src = it.src;
 
-            // **Đã loại bỏ hiệu ứng trái tim hồng tản ra**
-        };
+    const name = document.createElement('div');
+    name.className='name';
+    name.textContent = it.name || 'Ảnh';
 
-        /*
-         * Canvas Particle Effect for pinkboard
-         */
-        var settings = {
-            particles: {
-                length:   500, // maximum amount of particles
-                duration: 2, // particle duration in sec
-                velocity: 100, // particle velocity in pixels/sec
-                effect: -0.75, // play with this for a nice effect
-                size:      30, // particle size in pixels
-            },
-        };
+    const del = document.createElement('button');
+    del.className='delbtn';
+    del.textContent='Xoá';
+    del.addEventListener('click', ()=>{
+      removeById(it.id);
+      renderWheel();
+    });
 
-        /*
-         * Point class
-         */
-        class Point {
-            constructor(x = 0, y = 0) {
-                this.x = x;
-                this.y = y;
-            }
+    card.appendChild(im);
+    card.appendChild(name);
+    card.appendChild(del);
+    fileItems.appendChild(card);
+  }
+}
 
-            clone() {
-                return new Point(this.x, this.y);
-            }
+function renderWheel(){
+  wheel.innerHTML = '';
+  if(pool.length===0){ wheel.style.background='#f1f5f9'; return; }
+  sliceAngle = 360 / pool.length;
 
-            length(len) {
-                if (len === undefined) {
-                    return Math.sqrt(this.x * this.x + this.y * this.y);
-                }
-                this.normalize();
-                this.x *= len;
-                this.y *= len;
-                return this;
-            }
+  // nền lát màu
+  let stops='';
+  for(let i=0;i<pool.length;i++){
+    const c=pastel[i%pastel.length], s=i*sliceAngle, e=(i+1)*sliceAngle;
+    stops += `${c} ${s}deg ${e}deg,`;
+  }
+  wheel.style.background = `conic-gradient(from -90deg, ${stops.slice(0,-1)})`;
 
-            normalize() {
-                const len = this.length();
-                if (len !== 0) {
-                    this.x /= len;
-                    this.y /= len;
-                }
-                return this;
-            }
-        }
+  // ảnh theo tâm lát
+  pool.forEach((img,i)=>{
+    const mid = i*sliceAngle + sliceAngle/2;
+    const wrap = document.createElement('div');
+    wrap.style.position='absolute';
+    wrap.style.left='43%';
+    wrap.style.top='43%';
+    wrap.style.transform = `
+      rotate(${mid}deg)
+      translate(calc(var(--radius) - (var(--center-size)/4.5) - var(--img-size)/4.5))
+      rotate(${-mid}deg)
+    `;
+    wrap.style.transformOrigin='center';
+    wrap.style.display='grid';
+    wrap.style.placeItems='center';
 
-        /*
-         * Particle class
-         */
-        class Particle {
-            constructor() {
-                this.position = new Point();
-                this.velocity = new Point();
-                this.acceleration = new Point();
-                this.age = 0;
-            }
+    const im = document.createElement('img');
+    im.src = img.src;
+    im.style.width='var(--img-size)';
+    im.style.height='var(--img-size)';
+    im.style.objectFit='cover';
+    im.style.borderRadius='10px';
+    im.style.border='3px solid #fff';
+    im.style.boxShadow='0 2px 6px rgba(0,0,0,.25)';
+    wrap.appendChild(im);
+    wheel.appendChild(wrap);
+  });
+}
 
-            initialize(x, y, dx, dy) {
-                this.position.x = x;
-                this.position.y = y;
-                this.velocity.x = dx;
-                this.velocity.y = dy;
-                this.acceleration.x = dx * settings.particles.effect;
-                this.acceleration.y = dy * settings.particles.effect;
-                this.age = 0;
-            }
+function spin(){
+  if(spinning || pool.length===0) return;
+  spinning = true;
 
-            update(deltaTime) {
-                this.position.x += this.velocity.x * deltaTime;
-                this.position.y += this.velocity.y * deltaTime;
-                this.velocity.x += this.acceleration.x * deltaTime;
-                this.velocity.y += this.acceleration.y * deltaTime;
-                this.age += deltaTime;
-            }
+  // cập nhật thời gian quay từ input
+  SPIN_TIME = Math.max(0.5, Number(spinTimeInput.value) || SPIN_TIME);
+  wheel.style.transition = `transform ${SPIN_TIME}s cubic-bezier(0.1, 0.8, 0.3, 1)`;
 
-            draw(context, image) {
-                function ease(t) {
-                    return (--t) * t * t + 1;
-                }
+  const idx = Math.floor(Math.random()*pool.length);
+  const turns = BASE_TURNS + Math.random()*3;
+  const target = 360*turns - idx*sliceAngle; // dừng đúng giữa lát trúng
+  rotation = target;
+  wheel.style.setProperty('--rot', rotation + 'deg');
 
-                const size = image.width * ease(this.age / settings.particles.duration);
-                context.globalAlpha = 1 - this.age / settings.particles.duration;
-                context.drawImage(image, this.position.x - size / 2, this.position.y - size / 2, size, size);
-            }
-        }
+  lastWinnerId = pool[idx].id;
 
-        /*
-         * ParticlePool class
-         */
-        class ParticlePool {
-            constructor(length) {
-                this.particles = Array.from({length}, () => new Particle());
-                this.firstActive = 0;
-                this.firstFree = 0;
-                this.duration = settings.particles.duration;
-            }
+  wheel.addEventListener('transitionend', ()=>{
+    spinning = false;
+    showWinner(pool[idx].src);
+  }, {once:true});
+}
 
-            add(x, y, dx, dy) {
-                this.particles[this.firstFree].initialize(x, y, dx, dy);
+function showWinner(src){
+  winnerImg.src = src;
+  overlay.classList.add('show');
+}
 
-                this.firstFree++;
-                if (this.firstFree === this.particles.length) this.firstFree = 0;
-                if (this.firstActive === this.firstFree) this.firstActive++;
-                if (this.firstActive === this.particles.length) this.firstActive = 0;
-            }
+function removeById(id){
+  // xoá khỏi pool
+  const ix = pool.findIndex(x=>x.id===id);
+  if(ix>=0) pool.splice(ix,1);
 
-            update(deltaTime) {
-                if (this.firstActive < this.firstFree) {
-                    for (let i = this.firstActive; i < this.firstFree; i++) {
-                        this.particles[i].update(deltaTime);
-                    }
-                } else {
-                    for (let i = this.firstActive; i < this.particles.length; i++) {
-                        this.particles[i].update(deltaTime);
-                    }
-                    for (let i = 0; i < this.firstFree; i++) {
-                        this.particles[i].update(deltaTime);
-                    }
-                }
+  // xoá khỏi UI danh sách
+  const card = fileItems.querySelector(`[data-id="${id}"]`);
+  if(card) card.remove();
 
-                while (this.particles[this.firstActive].age >= this.duration && this.firstActive !== this.firstFree) {
-                    this.firstActive++;
-                    if (this.firstActive === this.particles.length) this.firstActive = 0;
-                }
-            }
+  // reset góc để tránh lệch sau khi giảm lát
+  wheel.style.transition = 'none';
+  rotation = 0;
+  wheel.style.setProperty('--rot','0deg');
 
-            draw(context, image) {
-                if (this.firstActive < this.firstFree) {
-                    for (let i = this.firstActive; i < this.firstFree; i++) {
-                        this.particles[i].draw(context, image);
-                    }
-                } else {
-                    for (let i = this.firstActive; i < this.particles.length; i++) {
-                        this.particles[i].draw(context, image);
-                    }
-                    for (let i = 0; i < this.firstFree; i++) {
-                        this.particles[i].draw(context, image);
-                    }
-                }
-            }
-        }
+  // cập nhật UI
+  rebuildFileUI();
+  renderWheel();
 
-        /*
-         * ParticlePool Initialization for pinkboard
-         */
-        (function(canvas) {
-            const context = canvas.getContext('2d');
-            const particles = new ParticlePool(settings.particles.length);
-            const particleRate = settings.particles.length / settings.particles.duration; // particles/sec
-            let time;
+  if(pool.length===0){
+    toast.classList.add('show');
+    setTimeout(()=>toast.classList.remove('show'), 1600);
+  }
+}
 
-            // Point on heart curve
-            function pointOnHeart(t) {
-                return new Point(
-                    160 * Math.pow(Math.sin(t), 3),
-                    130 * Math.cos(t) - 50 * Math.cos(2 * t) - 20 * Math.cos(3 * t) - 10 * Math.cos(4 * t) + 25
-                );
-            }
+// Đóng popup → xoá ảnh trúng khỏi pool & danh sách
+overlay.addEventListener('click', ()=>{
+  overlay.classList.remove('show');
+  if(lastWinnerId){
+    removeById(lastWinnerId);
+    lastWinnerId = null;
+  }
+});
 
-            // Create particle image using a dummy canvas
-            const image = (function() {
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                canvas.width  = settings.particles.size;
-                canvas.height = settings.particles.size;
+fileInput.addEventListener('change', async e=>{
+  const files = Array.from(e.target.files); // không giới hạn
+  const readers = files.map(f => new Promise(res=>{
+    const r = new FileReader();
+    r.onload = () => res({ id: uid(), src: r.result, name: f.name });
+    r.readAsDataURL(f);
+  }));
+  const loaded = await Promise.all(readers);
 
-                function to(t) {
-                    const point = pointOnHeart(t);
-                    point.x = settings.particles.size / 2 + point.x * settings.particles.size / 350;
-                    point.y = settings.particles.size / 2 - point.y * settings.particles.size / 350;
-                    return point;
-                }
+  // thay thế danh sách hiện tại bằng lần chọn mới
+  pool = loaded;
 
-                // Create heart path
-                context.beginPath();
-                let t = -Math.PI;
-                let point = to(t);
-                context.moveTo(point.x, point.y);
-                while (t < Math.PI) {
-                    t += 0.01; // Small steps for smoothness
-                    point = to(t);
-                    context.lineTo(point.x, point.y);
-                }
-                context.closePath();
+  rebuildFileUI();
+  renderWheel();
 
-                // Fill heart
-                context.fillStyle = '#ea80b0';
-                context.fill();
+  // reset quay
+  wheel.style.transition='none';
+  rotation=0;
+  wheel.style.setProperty('--rot','0deg');
+});
 
-                // Create image
-                const img = new Image();
-                img.src = canvas.toDataURL();
-                return img;
-            })();
-
-            // Render function
-            function render() {
-                requestAnimationFrame(render);
-
-                // Update time
-                const newTime = Date.now() / 1000;
-                const deltaTime = newTime - (time || newTime);
-                time = newTime;
-
-                // Clear canvas
-                context.clearRect(0, 0, canvas.width, canvas.height);
-
-                // Create new particles
-                const amount = particleRate * deltaTime;
-                for (let i = 0; i < amount; i++) {
-                    const pos = pointOnHeart(Math.PI - 2 * Math.PI * Math.random());
-                    const dir = pos.clone().length(settings.particles.velocity);
-                    particles.add(canvas.width / 2 + pos.x, canvas.height / 2 - pos.y, dir.x, -dir.y);
-                }
-
-                // Update and draw particles
-                particles.update(deltaTime);
-                particles.draw(context, image);
-            }
-
-            // Handle resizing
-            function onResize() {
-                canvas.width  = canvas.clientWidth;
-                canvas.height = canvas.clientHeight;
-            }
-
-            window.onresize = onResize;
-
-            // Start rendering
-            setTimeout(function() {
-                onResize();
-                render();
-            }, 10);
-        })(document.getElementById('pinkboard'));
-    </script>
+startBtn.addEventListener('click', spin);
+</script>
 </body>
 </html>
